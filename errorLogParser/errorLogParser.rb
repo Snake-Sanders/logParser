@@ -45,17 +45,25 @@ class ErrorReport
   def parse_error_log
     begin
       File.open('input/generation_errors.log', 'r') do |file|
+        # previous line related to the error log containing the error code
+        prevLine = ""
         file.readlines.each do |line|
-          # ommit usless lines
+
+          # ommit usless lines: _headers ^enders and empty lines
           if(  line[0] != '_' && line[0] != '^' && line[0] != ' ' )
+
             # check beginning of the line with [eABC] or [ABC]
             user = line.slice!(/^\[e?\w+\]\s*/)
+
             # drop anything that is not word
             user.gsub!(/\W/,"") unless user == nil
 
             if( @users.include? user)
-              if line.slice!("Row:") == nil
+              if line.slice!("Row:")
+                prevLine = line
+              else
                 line.slice!("Input(zFAS Error Descriptions sheet):")
+                @report.last.message << "Referring to#{prevLine}" unless line.slice!("^^") == nil
                 @report.last.message << line
               end
             else
@@ -74,7 +82,7 @@ class ErrorReport
     puts "The following #{@report.size} users have introduced errors in the generation script:"
     puts "#{@users.join(" ")}"
     @report.each do |info|
-      puts "User:#{@users[info.id]}:\n#{info.message.join(" ")}"
+      puts "User: #{@users[info.id]}:\n#{info.message.join("")}"
     end
   end
 
