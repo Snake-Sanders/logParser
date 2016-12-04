@@ -15,23 +15,68 @@
 # Open the log file
 # @todo optimize with Filel snippet
 
-users   = [] # user ids who produce errors in the logs
+class ErrorReport
 
-begin
-  File.open('input/generation_errors.log', 'r') do |file|
-    file.readlines.each do |line|
-      # splite the line in words by blank spaces
-      text = line.split(/\.?\s+/)
-      header = text[0]
-      if( header =~ /^\[e?\w{3}\]/ )
-        # drop anything that is not word
-        user = header.gsub!(/\W/,"")
-        users << user unless users.include? user
-      end
+  def initialize
+    @report = []
+    @users = []
+  end
+
+  class ErrorInfo
+
+    def initialize(id)
+      @id = id
+      @message = [] # message to infor the user about the error
+    end
+
+    def get_user
+      return @user # user ids who produce errors in the logs
+    end
+
+    def get_message
+      return @message
     end
   end
-rescue StandardError => ex
-  puts "Error: #{ex.to_s}"
+
+  def add_error_info(user)
+    @users << user
+    @report << ErrorInfo.new(@report.size)
+    #puts "[#{@report.size}] Added #{user}"
+  end
+
+  def parse_error_log
+    begin
+      File.open('input/generation_errors.log', 'r') do |file|
+        file.readlines.each do |line|
+          # splite the line in words by blank spaces
+          text = line.split(/\.?\s+/)
+          header = text[0]
+          if( header =~ /^\[e?\w{3}\]/ )
+            # drop anything that is not word
+            user = header.gsub!(/\W/,"")
+            if( @users.include? user)
+              @report.last.message << text[2] unless text[1] = "Row:"
+            else
+              add_error_info(user)
+            end
+          end
+        end
+      end
+    rescue StandardError => ex
+      puts "Error: #{ex.to_s}"
+    end
+  end
+
+  def show
+    puts "Users to be notified:"
+    @report.each do |info|
+      puts "User:#{info.get_user}\n"
+     puts "Info:#{info.get_message}"
+    end
+  end
+
 end
 
-puts "Users to be notified:#{users.join(",")}"
+report = ErrorReport.new
+report.parse_error_log
+report.show
