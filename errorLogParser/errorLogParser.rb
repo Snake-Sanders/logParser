@@ -14,48 +14,50 @@
 
 # Open the log file
 # @todo optimize with Filel snippet
+# @todo use .intern to creat symbols
+
+class ErrorInfo
+  attr_accessor :id
+  attr_accessor :message
+
+  def initialize(id)
+    @id = id
+    @message = [] # message to infor the user about the error
+  end
+end
 
 class ErrorReport
+
+  attr_accessor :user
+  attr_accessor :message
 
   def initialize
     @report = []
     @users = []
   end
 
-  class ErrorInfo
-
-    def initialize(id)
-      @id = id
-      @message = [] # message to infor the user about the error
-    end
-
-    def get_user
-      return @user # user ids who produce errors in the logs
-    end
-
-    def get_message
-      return @message
-    end
-  end
-
   def add_error_info(user)
     @users << user
     @report << ErrorInfo.new(@report.size)
-    #puts "[#{@report.size}] Added #{user}"
+      #puts "[#{@report.size}] Added #{user}"
   end
 
   def parse_error_log
     begin
       File.open('input/generation_errors.log', 'r') do |file|
         file.readlines.each do |line|
-          # splite the line in words by blank spaces
-          text = line.split(/\.?\s+/)
-          header = text[0]
-          if( header =~ /^\[e?\w{3}\]/ )
+          # ommit usless lines
+          if(  line[0] != '_' && line[0] != '^' && line[0] != ' ' )
+            # check beginning of the line with [eABC] or [ABC]
+            user = line.slice!(/^\[e?\w+\]\s*/)
             # drop anything that is not word
-            user = header.gsub!(/\W/,"")
+            user.gsub!(/\W/,"") unless user == nil
+
             if( @users.include? user)
-              @report.last.message << text[2] unless text[1] = "Row:"
+              if line.slice!("Row:") == nil
+                line.slice!("Input(zFAS Error Descriptions sheet):")
+                @report.last.message << line
+              end
             else
               add_error_info(user)
             end
@@ -68,10 +70,11 @@ class ErrorReport
   end
 
   def show
-    puts "Users to be notified:"
+    puts "Error list log report"
+    puts "The following #{@report.size} users have introduced errors in the generation script:"
+    puts "#{@users.join(" ")}"
     @report.each do |info|
-      puts "User:#{info.get_user}\n"
-     puts "Info:#{info.get_message}"
+      puts "User:#{@users[info.id]}:\n#{info.message.join(" ")}"
     end
   end
 
