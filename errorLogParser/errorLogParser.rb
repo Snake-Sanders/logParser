@@ -88,6 +88,7 @@ class ErrorReport
 
 end
 
+# Main function
 report = ErrorReport.new
 report.parse_error_log
 report.show
